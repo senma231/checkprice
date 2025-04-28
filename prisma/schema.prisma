@@ -1,0 +1,338 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  username          String              @unique
+  password          String
+  email             String              @unique
+  phone             String?
+  realName          String?
+  organizationId    Int?
+  status            Int                 @default(1)
+  userType          Int
+  lastLoginTime     DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  announcements     Announcement[]
+  operationLogs     OperationLog[]
+  priceOperations   PriceHistory[]      @relation("OperatedBy")
+  importRecords     PriceImportRecord[]
+  createdPrices     Price[]             @relation("CreatedBy")
+  userRoles         UserRole[]
+  createdServices   LogisticsService[]  @relation("ServiceCreator")
+  updatedServices   LogisticsService[]  @relation("ServiceUpdater")
+  organization      Organization?       @relation(fields: [organizationId], references: [id])
+
+  @@map("users")
+}
+
+model Organization {
+  id          Int            @id @default(autoincrement())
+  name        String         @unique
+  parentId    Int?
+  level       Int
+  description String?
+  status      Int            @default(1)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  parent      Organization?  @relation("OrganizationTree", fields: [parentId], references: [id])
+  children    Organization[] @relation("OrganizationTree")
+  prices      Price[]        @relation("OrganizationPrice")
+  users       User[]
+
+  @@map("organizations")
+}
+
+model Role {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  description     String?
+  status          Int              @default(1)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              Int              @id @default(autoincrement())
+  name            String
+  code            String           @unique
+  description     String?
+  status          Int              @default(1)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  roleId    Int
+  createdAt DateTime @default(now())
+  role      Role     @relation(fields: [roleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model LogisticsServiceType {
+  id          Int                    @id @default(autoincrement())
+  name        String
+  code        String                 @unique
+  parentId    Int?
+  description String?
+  status      Int                    @default(1)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  parent      LogisticsServiceType?  @relation("ServiceTypeTree", fields: [parentId], references: [id])
+  children    LogisticsServiceType[] @relation("ServiceTypeTree")
+  services    LogisticsService[]
+
+  @@map("logistics_service_types")
+}
+
+model LogisticsService {
+  id            Int                  @id @default(autoincrement())
+  name          String
+  code          String               @unique
+  serviceTypeId Int
+  provider      String               @default("")
+  description   String?
+  status        Int                  @default(1)
+  createdBy     Int?
+  updatedBy     Int?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  serviceType   LogisticsServiceType @relation(fields: [serviceTypeId], references: [id])
+  creator       User?                @relation("ServiceCreator", fields: [createdBy], references: [id])
+  updater       User?                @relation("ServiceUpdater", fields: [updatedBy], references: [id])
+
+  @@map("logistics_services")
+}
+
+model ValueAddedService {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  description String?
+  status      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("value_added_services")
+}
+
+model Region {
+  id                      Int            @id @default(autoincrement())
+  name                    String
+  code                    String         @unique
+  parentId                Int?
+  level                   Int
+  status                  Int            @default(1)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  destinationPriceHistory PriceHistory[] @relation("DestinationRegionHistory")
+  originPriceHistory      PriceHistory[] @relation("OriginRegionHistory")
+  destinationPrices       Price[]        @relation("DestinationRegion")
+  originPrices            Price[]        @relation("OriginRegion")
+  parent                  Region?        @relation("RegionTree", fields: [parentId], references: [id])
+  children                Region[]       @relation("RegionTree")
+
+  @@map("regions")
+}
+
+model Price {
+  id                  Int            @id @default(autoincrement())
+  serviceId           Int
+  serviceType         Int
+  originRegionId      Int?
+  destinationRegionId Int?
+  weightStart         Decimal?       @db.Decimal(10, 2)
+  weightEnd           Decimal?       @db.Decimal(10, 2)
+  volumeStart         Decimal?       @db.Decimal(10, 2)
+  volumeEnd           Decimal?       @db.Decimal(10, 2)
+  price               Decimal        @db.Decimal(10, 2)
+  currency            String         @default("CNY")
+  priceUnit           String
+  effectiveDate       DateTime       @db.Date
+  expiryDate          DateTime?      @db.Date
+  isCurrent           Boolean        @default(true)
+  remark              String?
+  createdBy           Int
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  organizationId      Int?
+  priceType           Int            @default(1)
+  visibilityType      Int            @default(1)
+  visibleOrgs         String?
+  priceHistory        PriceHistory[]
+  creator             User           @relation("CreatedBy", fields: [createdBy], references: [id])
+  destinationRegion   Region?        @relation("DestinationRegion", fields: [destinationRegionId], references: [id])
+  organization        Organization?  @relation("OrganizationPrice", fields: [organizationId], references: [id])
+  originRegion        Region?        @relation("OriginRegion", fields: [originRegionId], references: [id])
+
+  @@index([serviceId, serviceType])
+  @@index([originRegionId, destinationRegionId])
+  @@index([effectiveDate, expiryDate])
+  @@index([isCurrent])
+  @@map("prices")
+}
+
+model PriceHistory {
+  id                  Int       @id @default(autoincrement())
+  priceId             Int
+  serviceId           Int
+  serviceType         Int
+  originRegionId      Int?
+  destinationRegionId Int?
+  weightStart         Decimal?  @db.Decimal(10, 2)
+  weightEnd           Decimal?  @db.Decimal(10, 2)
+  volumeStart         Decimal?  @db.Decimal(10, 2)
+  volumeEnd           Decimal?  @db.Decimal(10, 2)
+  price               Decimal   @db.Decimal(10, 2)
+  currency            String
+  priceUnit           String
+  effectiveDate       DateTime  @db.Date
+  expiryDate          DateTime? @db.Date
+  remark              String?
+  operationType       String
+  operatedBy          Int
+  operatedAt          DateTime  @default(now())
+  organizationId      Int?
+  priceType           Int?
+  visibilityType      Int?
+  visibleOrgs         String?
+  destinationRegion   Region?   @relation("DestinationRegionHistory", fields: [destinationRegionId], references: [id])
+  operator            User      @relation("OperatedBy", fields: [operatedBy], references: [id])
+  originRegion        Region?   @relation("OriginRegionHistory", fields: [originRegionId], references: [id])
+  priceRecord         Price     @relation(fields: [priceId], references: [id])
+
+  @@index([priceId])
+  @@index([serviceId, serviceType])
+  @@index([operatedAt])
+  @@map("price_history")
+}
+
+model PriceImportRecord {
+  id             Int                @id @default(autoincrement())
+  fileName       String
+  fileType       String
+  fileSize       BigInt
+  filePath       String
+  importStatus   Int
+  totalRecords   Int?
+  successRecords Int?
+  failedRecords  Int?
+  errorMessage   String?
+  importedBy     Int
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  importErrors   PriceImportError[]
+  importer       User               @relation(fields: [importedBy], references: [id])
+
+  @@map("price_import_records")
+}
+
+model PriceImportError {
+  id           Int               @id @default(autoincrement())
+  importId     Int
+  rowNumber    Int?
+  errorMessage String
+  rawData      String?
+  createdAt    DateTime          @default(now())
+  importRecord PriceImportRecord @relation(fields: [importId], references: [id])
+
+  @@map("price_import_errors")
+}
+
+model Configuration {
+  id          Int      @id @default(autoincrement())
+  configKey   String   @unique
+  configValue String
+  description String?
+  status      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("configurations")
+}
+
+model OperationLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  module        String
+  operation     String
+  method        String
+  requestUrl    String
+  requestParams String?
+  ipAddress     String?
+  executionTime BigInt?
+  status        Int
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([module])
+  @@map("operation_logs")
+}
+
+model Announcement {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  publishTime DateTime
+  expireTime  DateTime?
+  status      Int       @default(1)
+  createdBy   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  creator     User      @relation(fields: [createdBy], references: [id])
+
+  @@index([publishTime])
+  @@index([status])
+  @@map("announcements")
+}
+
+model QueryLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  userType      Int
+  queryType     String
+  queryParams   String
+  resultCount   Int?
+  executionTime BigInt?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([queryType])
+  @@map("query_logs")
+}

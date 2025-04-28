@@ -24,3 +24,84 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 修复登录按钮样式 */
+.ant-btn {
+  position: relative;
+  z-index: 10;
+}
+
+.login-button {
+  margin-right: 0 !important;
+  position: relative !important;
+  top: 0 !important;
+  right: 0 !important;
+}
+
+/* 用户头像下拉菜单样式 */
+.ant-dropdown-menu {
+  min-width: 160px !important;
+}
+
+.ant-avatar {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.ant-avatar:hover {
+  opacity: 0.8;
+}
+
+.ant-space {
+  gap: 8px !important;
+}
+
+.search-button {
+  width: 100% !important;
+  margin: 0 auto !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 修复按钮样式 */
+.ant-btn-primary {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 修复链接按钮样式 */
+.ant-btn-link {
+  padding-left: 0 !important;
+}
+
+/* Dashboard菜单样式 */
+.dashboard-menu .ant-menu-item {
+  margin: 4px 0 !important;
+}
+
+.dashboard-menu .ant-menu-item-icon {
+  margin-right: 10px !important;
+}
+
+/* 确保头部导航栏正确显示 */
+.ant-layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  height: 64px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+}
+
+/* 修复暗色模式下的样式问题 */
+@media (prefers-color-scheme: dark) {
+  .ant-layout-header {
+    background-color: #001529 !important;
+  }
+}
